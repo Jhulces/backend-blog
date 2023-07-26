@@ -1,0 +1,10 @@
+POST http://localhost:3003/api/blogs/
+Content-Type: application/json
+
+{
+    "title": "MechatronicFullStack",
+    "author": "Ian Eightorn",
+    "url": "M6FS.blogspot.com",
+    "likes": 12000,
+    "userId": "64bf929fe04c5468292b00d8"
+}

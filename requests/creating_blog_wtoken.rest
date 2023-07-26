@@ -1,0 +1,10 @@
+POST http://localhost:3003/api/blogs/
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImpodWxjZXMiLCJpZCI6IjY0YmY5MjlmZTA0YzU0NjgyOTJiMDBkOCIsImlhdCI6MTY5MDM1NzY2NiwiZXhwIjoxNjkwMzYxMjY2fQ.1TA4CZvarW_sBJpIHNK5tpssGMS1HkXDfRIb22015Ms
+
+{
+    "title": "FutureInventor",
+    "author": "Ian Eightorn",
+    "url": "InventionInprogress.com",
+    "likes": 200
+}
