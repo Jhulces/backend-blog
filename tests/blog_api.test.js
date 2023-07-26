@@ -9,8 +9,19 @@ const Blog = require('../models/blog')
 const User = require('../models/user')
 
 beforeEach(async () => {
+    
+    await User.deleteMany({})
+  
+    const passwordHash = await bcrypt.hash('sekret', 10)
+    const user = new User({ username: 'root', passwordHash })
+  
+    response = await user.save()
+
+    const signedBlogs = helper.initialBlogs.map(blog => ({...blog, user: response.id}))
+
     await Blog.deleteMany({})
-    await Blog.insertMany(helper.initialBlogs)
+    await Blog.insertMany(signedBlogs)
+
 })
 
 
@@ -37,7 +48,19 @@ describe('GET tests', () => {
 })
 
 describe('POST tests', () => {
-    test('a valid blog post can be added', async () => {
+    test('a valid blog post can be added using root user', async () => {
+
+        const newLogin = {
+            username: 'root',
+            password: 'sekret'
+        }
+
+        const loginData = await api
+            .post('/api/login')
+            .send(newLogin)
+        
+        const token = loginData.body.token
+
         const newBlog = {
             title: "Testing supertest",
             author: "Jhul Ochoa",
@@ -48,6 +71,7 @@ describe('POST tests', () => {
         response = await api
             .post('/api/blogs')
             .send(newBlog)
+            .set('Authorization', `Bearer ${token}`)
             .expect(201)
             .expect('Content-Type', /application\/json/)
         
@@ -57,7 +81,42 @@ describe('POST tests', () => {
         expect(response.body).toMatchObject(newBlog)
     })
     
+    test('a blog post cannot be added without an user token', async () =>{
+
+        const blogsAtStart = await helper.blogsInDb()
+        const token = null
+
+        const newBlog = {
+            title: "Testing supertest",
+            author: "Jhul Ochoa",
+            url: "https://JCOE-tests-supertest.com/",
+            likes: 8
+        }
+        response = await api
+            .post('/api/blogs')
+            .send(newBlog)
+            .set('Authorization', `Bearer ${token}`)
+            .expect(401)
+            .expect('Content-Type', /application\/json/)
+        
+        const blogsAtEnd = await helper.blogsInDb()
+    
+        expect(blogsAtEnd).toEqual(blogsAtStart)
+    })
+
     test('if the likes property is missing from the request, it will default to 0', async () => {
+        
+        const newLogin = {
+            username: 'root',
+            password: 'sekret'
+        }
+
+        const loginData = await api
+            .post('/api/login')
+            .send(newLogin)
+        
+        const token = loginData.body.token
+
         const newBlog = {
             title: "Testing supertest",
             author: "Jhul Ochoa",
@@ -67,12 +126,25 @@ describe('POST tests', () => {
         const response = await api
             .post('/api/blogs')
             .send(newBlog)
+            .set('Authorization', `Bearer ${token}`)
             .expect(201)
         
         expect(response.body.likes).toBe(0)
     })
     
     test('verify that if title or url are missing from the request, it will be treated as a bad request', async () => {
+
+        const newLogin = {
+            username: 'root',
+            password: 'sekret'
+        }
+
+        const loginData = await api
+            .post('/api/login')
+            .send(newLogin)
+        
+        const token = loginData.body.token
+
         const newBlog1 = {
             author: "Jhul Ochoa",
             url: "https://JCOE-tests-supertest.com/"
@@ -80,6 +152,7 @@ describe('POST tests', () => {
         await api
             .post('/api/blogs')
             .send(newBlog1)
+            .set('Authorization', `Bearer ${token}`)
             .expect(400)
     
         const newBlog2 = {
@@ -89,17 +162,31 @@ describe('POST tests', () => {
         await api
             .post('/api/blogs')
             .send(newBlog2)
+            .set('Authorization', `Bearer ${token}`)
             .expect(400)
     })
 })
 
 describe('DELETE tests', () => {
     test('succeeds with status code 204 if id is valid', async () => {
+
+        const newLogin = {
+            username: 'root',
+            password: 'sekret'
+        }
+
+        const loginData = await api
+            .post('/api/login')
+            .send(newLogin)
+        
+        const token = loginData.body.token
+
         const blogsAtStart = await helper.blogsInDb()
         const blogToDelete = blogsAtStart[0]
     
         await api
             .delete(`/api/blogs/${blogToDelete.id}`)
+            .set('Authorization', `Bearer ${token}`)
             .expect(204)
     
         const blogsAtEnd = await helper.blogsInDb()
@@ -126,15 +213,7 @@ describe('PUT tests', () => {
     })
 })
 
-describe('when there is initially one user in db', () => {
-    beforeEach(async () => {
-      await User.deleteMany({})
-  
-      const passwordHash = await bcrypt.hash('sekret', 10)
-      const user = new User({ username: 'root', passwordHash })
-  
-      await user.save()
-    })
+describe('User handling tests', () => {
   
     test('creation succeeds with a fresh username', async () => {
       const usersAtStart = await helper.usersInDb()
